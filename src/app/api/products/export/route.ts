@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const products = getAllProducts();
+  const products = await getAllProducts();
 
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Productos");

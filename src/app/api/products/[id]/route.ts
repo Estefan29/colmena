@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   try {
-    const product = updateProduct(Number(id), code, name, price);
+    const product = await updateProduct(Number(id), code, name, price);
     if (!product) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     return NextResponse.json({ product });
   } catch (err: unknown) {
@@ -35,6 +35,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
   const { id } = await params;
-  deleteProduct(Number(id));
+  await deleteProduct(Number(id));
   return NextResponse.json({ ok: true });
 }

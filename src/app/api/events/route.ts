@@ -4,16 +4,15 @@ import { createEvent, listEvents, type EventItemInput, type EventType } from "@/
 import { getDb } from "@/lib/db";
 import type { Product } from "@/lib/products";
 
-function resolveProductRef(ref: {
+async function resolveProductRef(ref: {
   productId?: number | null;
   code?: string | null;
   name?: string | null;
-}): { productId: number | null; code: string | null; name: string | null; price: number | null } | null {
+}): Promise<{ productId: number | null; code: string | null; name: string | null; price: number | null } | null> {
   if (ref.productId) {
-    const db = getDb();
-    const product = db.prepare(`SELECT * FROM products WHERE id = ?`).get(ref.productId) as
-      | Product
-      | undefined;
+    const db = await getDb();
+    const { rows } = await db.query<Product>(`SELECT * FROM products WHERE id = $1`, [ref.productId]);
+    const product = rows[0];
     if (!product) return null;
     return { productId: product.id, code: product.code, name: product.name, price: product.price };
   }
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   const createdBy = session.role === "empleada" ? session.name : searchParams.get("createdBy") || undefined;
 
-  const { items, total } = listEvents({
+  const { items, total } = await listEvents({
     type,
     reviewed: reviewedParam === null ? undefined : reviewedParam === "1",
     from,
@@ -71,8 +70,8 @@ export async function POST(req: NextRequest) {
     if (!motivo) {
       return NextResponse.json({ error: "El motivo del cambio es obligatorio" }, { status: 400 });
     }
-    const sale = resolveProductRef(body.saleProduct || {});
-    const entra = resolveProductRef(body.entraProduct || {});
+    const sale = await resolveProductRef(body.saleProduct || {});
+    const entra = await resolveProductRef(body.entraProduct || {});
     if (!sale || !entra) {
       return NextResponse.json(
         { error: "Debes indicar el producto que sale y el que entra" },
@@ -99,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (!motivo) {
       return NextResponse.json({ error: "El motivo es obligatorio" }, { status: 400 });
     }
-    const product = resolveProductRef(body.product || {});
+    const product = await resolveProductRef(body.product || {});
     if (!product) {
       return NextResponse.json({ error: "Selecciona el producto" }, { status: 400 });
     }
@@ -121,7 +120,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Agrega al menos un producto" }, { status: 400 });
     }
     for (const raw of rawItems) {
-      const product = resolveProductRef(raw);
+      const product = await resolveProductRef(raw);
       if (!product) {
         return NextResponse.json({ error: "Hay un producto sin seleccionar" }, { status: 400 });
       }
@@ -140,7 +139,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Tipo de registro inválido" }, { status: 400 });
   }
 
-  const event = createEvent({
+  const event = await createEvent({
     type: body.type,
     createdBy,
     motivo,

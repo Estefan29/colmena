@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { getSession } from "@/lib/auth";
-import { upsertProductByCode } from "@/lib/products";
+import { upsertProductsBulk, type UpsertRow } from "@/lib/products";
 
 const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -66,9 +66,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let created = 0;
-  let updated = 0;
   const errors: { row: number; message: string }[] = [];
+  const validRows: UpsertRow[] = [];
 
   for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber++) {
     const row = sheet.getRow(rowNumber);
@@ -91,13 +90,20 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    try {
-      const result = upsertProductByCode(code, name, price);
-      if (result === "created") created++;
-      else updated++;
-    } catch {
-      errors.push({ row: rowNumber, message: "No se pudo guardar esta fila" });
-    }
+    validRows.push({ code, name, price });
+  }
+
+  let created = 0;
+  let updated = 0;
+  try {
+    const result = await upsertProductsBulk(validRows);
+    created = result.created;
+    updated = result.updated;
+  } catch {
+    return NextResponse.json(
+      { error: "No se pudo guardar la importación en la base de datos" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ created, updated, errors });

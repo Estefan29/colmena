@@ -13,11 +13,11 @@ export async function GET(req: NextRequest) {
   if (mode === "list") {
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 20)));
-    const { items, total } = listProducts(q, page, pageSize);
+    const { items, total } = await listProducts(q, page, pageSize);
     return NextResponse.json({ items, total, page, pageSize });
   }
 
-  const items = searchProducts(q, 20);
+  const items = await searchProducts(q, 20);
   return NextResponse.json({ items });
 }
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const product = createProduct(code, name, price);
+    const product = await createProduct(code, name, price);
     return NextResponse.json({ product }, { status: 201 });
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes("UNIQUE")) {

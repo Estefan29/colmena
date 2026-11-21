@@ -13,12 +13,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (session.role !== "duena") {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
-    const event = setReviewed(Number(id), body.reviewed);
+    const event = await setReviewed(Number(id), body.reviewed);
     return NextResponse.json({ event });
   }
 
   if (body?.status === "pendiente" || body?.status === "pagado") {
-    const event = updateFiadoStatus(Number(id), body.status);
+    const event = await updateFiadoStatus(Number(id), body.status);
     return NextResponse.json({ event });
   }
 

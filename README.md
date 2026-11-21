@@ -12,13 +12,50 @@ Aplicación web sencilla para que las empleadas de DistriVariedades registren **
 - **Panel** (dueña): ve todos los movimientos con filtros por tipo, fecha, texto y estado; marca cada uno como "Pasado a Siigo" para llevar el control; exporta todo a Excel.
 - Sin manejo de stock: es una bitácora de movimientos, no un sistema de inventario.
 
-## Cómo correr el proyecto localmente
+## Publicar la app en Vercel (gratis)
 
-Requiere Node.js 20+.
+Esta es la forma recomendada para que todas las empleadas y la dueña puedan usarla desde cualquier lugar, sin pagar nada.
+
+### 1. Crear cuenta en Vercel
+
+Entra a [vercel.com](https://vercel.com) → **Sign Up** → elige "Continue with GitHub" (usa la misma cuenta de GitHub donde está este repositorio).
+
+### 2. Importar el proyecto
+
+1. En el panel de Vercel, click **Add New… → Project**.
+2. Busca el repositorio `colmena` y dale **Import**.
+3. Framework: Vercel detecta automáticamente que es Next.js, no hay que tocar nada ahí.
+4. Todavía **no le des a Deploy** — antes hay que crear la base de datos (siguiente paso). Si ya le diste, no pasa nada, luego se agrega igual.
+
+### 3. Crear la base de datos (Postgres)
+
+1. Dentro del proyecto en Vercel, ve a la pestaña **Storage**.
+2. **Create Database** → elige **Postgres** (Neon).
+3. Sigue los pasos por defecto y conéctala al proyecto (esto crea automáticamente la variable `DATABASE_URL`, no hay que copiarla a mano).
+
+### 4. Agregar las contraseñas
+
+En el proyecto → **Settings → Environment Variables**, agrega estas tres:
+
+| Variable | Valor sugerido |
+|---|---|
+| `EMPLOYEE_PASSWORD` | la contraseña que van a usar tus compañeras |
+| `OWNER_PASSWORD` | tu contraseña como dueña |
+| `AUTH_SECRET` | cualquier frase larga y aleatoria (ej. una fila de letras y números al azar) |
+
+### 5. Deploy
+
+Ve a la pestaña **Deployments** y dale **Redeploy** (o **Deploy** si es la primera vez). En un par de minutos Vercel te da una URL como `https://colmena-tuempresa.vercel.app` — esa es la dirección que van a usar tú y tus compañeras desde cualquier celular o computador.
+
+Cada vez que se suban cambios nuevos al repositorio, Vercel vuelve a publicar la app sola.
+
+## Cómo correr el proyecto en tu computador (para probar)
+
+Requiere Node.js 20+ y una base de datos Postgres (local o gratis en [Neon](https://neon.tech)/[Supabase](https://supabase.com)).
 
 ```bash
 npm install
-cp .env.example .env.local   # y cambia las contraseñas y el AUTH_SECRET
+cp .env.example .env.local   # completa DATABASE_URL y cambia las contraseñas
 npm run dev
 ```
 
@@ -26,31 +63,14 @@ Abre [http://localhost:3000](http://localhost:3000). Vas a poder entrar como **e
 
 ## Variables de entorno
 
-| Variable | Para qué sirve | Valor por defecto |
-|---|---|---|
-| `EMPLOYEE_PASSWORD` | Contraseña compartida para las empleadas | `empleada123` |
-| `OWNER_PASSWORD` | Contraseña de la dueña | `duena123` |
-| `AUTH_SECRET` | Frase secreta para firmar la sesión (usa algo largo y aleatorio) | valor de desarrollo, cámbialo |
-| `DATA_DIR` | Carpeta donde se guarda la base de datos (`colmena.db`) | `./data` |
+| Variable | Para qué sirve |
+|---|---|
+| `DATABASE_URL` | Conexión a la base de datos Postgres. En Vercel se crea sola al agregar el Storage; en local, la de tu Postgres. |
+| `EMPLOYEE_PASSWORD` | Contraseña compartida para las empleadas |
+| `OWNER_PASSWORD` | Contraseña de la dueña |
+| `AUTH_SECRET` | Frase secreta para firmar la sesión (usa algo largo y aleatorio) |
 
-**Cambia las contraseñas y el `AUTH_SECRET` antes de usarlo en producción.**
-
-## Datos: dónde se guardan
-
-La app usa una base de datos **SQLite** en un archivo (`data/colmena.db`), no necesita un servidor de base de datos aparte. Eso significa dos cosas importantes:
-
-1. Es muy fácil de correr (no hay que configurar Postgres/MySQL).
-2. Necesita un servidor que mantenga el disco entre reinicios (no sirve para plataformas "serverless" sin disco persistente, como el plan gratuito de Vercel).
-
-### Opciones para tenerla disponible desde cualquier lugar
-
-- **Railway / Render**: crea un servicio con un volumen persistente, apunta `DATA_DIR` a ese volumen, `npm run build` y `npm start`.
-- **Una VPS pequeña** (DigitalOcean, un droplet, etc.) o incluso un computador del local que quede encendido: corre `npm run build && npm start` y usa un servicio como PM2 para mantenerlo vivo, y Cloudflare Tunnel o similar para acceder desde afuera sin abrir puertos.
-- Si en el futuro se prefiere no depender de un disco (por ejemplo, para desplegar en Vercel), habría que migrar la base de datos a un servicio como Postgres (Neon, Supabase); no es necesario para el uso actual.
-
-### Respaldo
-
-Haz copia del archivo `data/colmena.db` de vez en cuando (o de toda la carpeta `data/`) para tener un respaldo. Ahí vive toda la información: productos y movimientos.
+**Cambia las contraseñas y el `AUTH_SECRET` antes de que la use el equipo de verdad.**
 
 ## Cómo cargar los productos existentes
 
@@ -58,6 +78,10 @@ Haz copia del archivo `data/colmena.db` de vez en cuando (o de toda la carpeta `
 2. Llena las columnas `codigo`, `nombre` y `precio` con tu Excel actual de los +3000 productos (o simplemente asegúrate de que tu Excel tenga esas tres columnas con esos nombres, en cualquier orden).
 3. **Importar Excel** y sube el archivo. Los productos nuevos se crean y los que ya existan (mismo código) se actualizan.
 
+## Respaldo
+
+Los datos viven en la base de datos Postgres (Vercel/Neon los respalda automáticamente). Si quieres un respaldo propio de vez en cuando, exporta el catálogo y los movimientos a Excel desde la app (botones "Exportar").
+
 ## Stack técnico
 
-Next.js (App Router) + TypeScript + Tailwind CSS + SQLite (`better-sqlite3`) + `exceljs` para leer/escribir Excel. Sesión simple por cookie firmada (HMAC), sin base de datos de usuarios: dos contraseñas (empleada/dueña) definidas por variables de entorno.
+Next.js (App Router) + TypeScript + Tailwind CSS + Postgres (`pg`) + `exceljs` para leer/escribir Excel. Sesión simple por cookie firmada (HMAC), sin base de datos de usuarios: dos contraseñas (empleada/dueña) definidas por variables de entorno.

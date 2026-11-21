@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get("to") || undefined;
   const q = searchParams.get("q") || undefined;
 
-  const { items } = listEvents({
+  const { items } = await listEvents({
     type,
     reviewed: reviewedParam === null ? undefined : reviewedParam === "1",
     from,
